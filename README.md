@@ -7,7 +7,9 @@ plus ranked, playable YouTube candidates. Design and decisions: [`MATCHING_SERVI
 (`watch?v=`, `youtu.be/`, `/shorts/`, `/embed/`, `/live/`, `/v/`). Every other input returns
 `422 unsupported_input`, and album/playlist links return `409 collection_input`. **`POST /expand`** turns
 Spotify albums/playlists and YT Music / YouTube albums/playlists into up to 100 track stubs, and
-**`GET /search`** lists songs from YT Music and Deezer for the guest search box. No cache yet.
+**`GET /search`** lists songs from YT Music and Deezer for the guest search box.
+
+`/resolve` results are cached in SQLite (D3): a repeated link answers in about 2 ms.
 
 A YouTube link comes back as `candidates[0]` with confidence 1 and `needsConfirmation: false`, and
 `canonical.durationMs` is the video's real length (from ytmusicapi's `get_song`). Live streams have
@@ -31,8 +33,23 @@ curl -X POST localhost:8000/resolve -H 'content-type: application/json' \
 Docker:
 
 ```sh
-docker build -t nidol . && docker run --rm -p 8000:8000 nidol
+docker build -t nidol . && docker run --rm -p 8000:8000 -v nidol-data:/data nidol
 ```
+
+The cache lives at `/data/nidol.sqlite3` in the image. Mount a persistent volume at `/data` (in Coolify:
+a persistent storage on `/data`), or the cache starts empty after every redeploy.
+
+## Cache (D3)
+
+- **Canonical track data** (title, artists, duration, ISRC, MBID) is kept forever, per link
+  (`spotify:<id>`, `deezer:<id>`, `youtube:<id>`).
+- **Candidates** expire after 7 days, per link and country. Spotify/Deezer candidates are also stored
+  under the track's ISRC, so a Spotify link and a Deezer link to the same recording share them (a
+  Spotify link learns its ISRC from Deezer while the YouTube search runs, and skips the search on a hit).
+- **ISRC / MBID that missed the request deadline are filled in afterwards** by a background task, once
+  per link per process. The MBID comes from MusicBrainz's link lookup, or else from its ISRC lookup.
+- Not cached: errors, live streams, oEmbed fallbacks (no duration), and YouTube links whose
+  alternates search failed. `/expand` and `/search` aren't cached.
 
 ## API (implemented so far)
 
@@ -61,6 +78,9 @@ Environment variables (see `src/nidol/config.py`):
 | Variable | Default |
 |---|---|
 | `PORT` / `HOST` | `8000` / `0.0.0.0` |
+| `NIDOL_CACHE_PATH` | `nidol.sqlite3` (`/data/nidol.sqlite3` in Docker; empty disables the cache) |
+| `NIDOL_CANDIDATES_TTL_S` | `604800` (7 days) |
+| `NIDOL_BACKFILL_WAIT_S` | `60` (how long a background lookup may queue for MusicBrainz) |
 | `NIDOL_MB_BASE_URL` | `https://musicbrainz.org/ws/2` |
 | `NIDOL_MB_MIN_INTERVAL_S` | `1.0` |
 | `NIDOL_SOURCE_TIMEOUT_S` | `0.8` (MusicBrainz, Deezer: skipped when late) |

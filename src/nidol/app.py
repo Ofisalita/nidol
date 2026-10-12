@@ -6,6 +6,7 @@ import httpx
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import JSONResponse
 
+from nidol.cache import Cache
 from nidol.config import settings
 from nidol.expand import expand
 from nidol.models import (
@@ -17,19 +18,25 @@ from nidol.models import (
     ResolveResponse,
     SearchResponse,
 )
-from nidol.resolve import resolve
+from nidol.resolve import cancel_backfills, resolve
 from nidol.search import search
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    cache = Cache(settings.cache_path or None, settings.candidates_ttl_s)
     async with httpx.AsyncClient(
         headers={"User-Agent": settings.user_agent},
         timeout=settings.required_timeout_s,
         follow_redirects=True,
     ) as client:
         app.state.http = client
-        yield
+        app.state.cache = cache
+        try:
+            yield
+        finally:
+            await cancel_backfills()
+            cache.close()
 
 
 app = FastAPI(title="nidol", version="0.1.0", lifespan=lifespan)
@@ -44,7 +51,7 @@ async def nidol_error(_: Request, exc: NidolError) -> JSONResponse:
 
 @app.post("/resolve", responses=_ERRORS)
 async def post_resolve(body: ResolveRequest, request: Request) -> ResolveResponse:
-    return await resolve(body, request.app.state.http)
+    return await resolve(body, request.app.state.http, request.app.state.cache)
 
 
 @app.post("/expand", responses=_ERRORS)
