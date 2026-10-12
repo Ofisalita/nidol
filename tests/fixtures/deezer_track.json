@@ -1,0 +1,26 @@
+{
+ "id": 1233990342,
+ "title": "One More Time (feat. Alida)",
+ "isrc": "DEA622001260",
+ "duration": 199,
+ "explicit_lyrics": false,
+ "release_date": "2021-02-26",
+ "rank": 493200,
+ "artist": {
+  "name": "Robin Schulz"
+ },
+ "contributors": [
+  {
+   "name": "Robin Schulz"
+  },
+  {
+   "name": "Felix Jaehn"
+  },
+  {
+   "name": "Alida"
+  }
+ ],
+ "album": {
+  "cover_xl": "https://cdn-images.dzcdn.net/images/cover/94b05b180d24ec794138416e7a1000f6/1000x1000-000000-80-0-0.jpg"
+ }
+}

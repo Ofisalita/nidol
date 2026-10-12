@@ -132,7 +132,10 @@ POST /expand
 GET  /search?q=...&country=CL
 200 OK
 { "results": [ { "title": "…", "artists": ["…"], "durationMs": …, "artworkUrl": "…", "isrc": "…",
-                 "source": { "platform": "deezer" | "ytmusic", "id": "…", "url": "…" } }, … ] }
+                 "source": { "platform": "youtube" | "deezer", "id": "…", "url": "…" } }, … ] }
+// Up to 10. YT Music songs lead, two per Deezer result. A song on both keeps the YT Music entry
+//   (quicker to /resolve) with Deezer's ISRC; Deezer results with rank < 100k (mostly covers,
+//   remixes, TikTok edits) go last. isrc is null for YT-only results.
 
 POST /feedback
 { "input": "…", "isrc": "…", "videoId": "…", "event": "picked" | "embed_error", "errorCode": 150 }

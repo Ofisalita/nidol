@@ -1,8 +1,9 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Annotated
 
 import httpx
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Query, Request
 from fastapi.responses import JSONResponse
 
 from nidol.config import settings
@@ -14,8 +15,10 @@ from nidol.models import (
     NidolError,
     ResolveRequest,
     ResolveResponse,
+    SearchResponse,
 )
 from nidol.resolve import resolve
+from nidol.search import search
 
 
 @asynccontextmanager
@@ -47,6 +50,15 @@ async def post_resolve(body: ResolveRequest, request: Request) -> ResolveRespons
 @app.post("/expand", responses=_ERRORS)
 async def post_expand(body: ExpandRequest, request: Request) -> ExpandResponse:
     return await expand(body, request.app.state.http)
+
+
+@app.get("/search", responses={503: {"model": ErrorBody}})
+async def get_search(
+    request: Request,
+    q: Annotated[str, Query(min_length=1, max_length=200)],
+    country: Annotated[str | None, Query(pattern=r"^[A-Z]{2}$")] = None,
+) -> SearchResponse:
+    return await search(q, country, request.app.state.http)
 
 
 @app.get("/healthz")

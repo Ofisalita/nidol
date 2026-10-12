@@ -11,6 +11,11 @@ _SPOTIFY_URL = re.compile(
 )
 _SPOTIFY_URI = re.compile(r"^spotify:(track|album|playlist):([A-Za-z0-9]{22})$")
 
+# Track links only: Deezer albums/playlists aren't expandable yet, so they stay unsupported.
+_DEEZER_TRACK = re.compile(
+    r"^https?://(?:www\.)?deezer\.com/(?:[a-z]{2}(?:-[a-z]{2})?/)?track/(\d+)", re.IGNORECASE
+)
+
 _YOUTUBE_HOSTS = {"youtube.com", "youtube-nocookie.com"}
 _YOUTUBE_PATH_ID = {"shorts", "embed", "live", "v"}
 _YOUTUBE_ID = re.compile(r"^[\w-]{11}$")
@@ -29,6 +34,8 @@ def parse_input(raw: str) -> ParsedInput | None:
     m = _SPOTIFY_URL.match(raw) or _SPOTIFY_URI.match(raw)
     if m:
         return ParsedInput("spotify", m.group(1), m.group(2))  # type: ignore[arg-type]
+    if m := _DEEZER_TRACK.match(raw):
+        return ParsedInput("deezer", "track", m.group(1))
     return _parse_youtube(raw)
 
 

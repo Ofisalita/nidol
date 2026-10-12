@@ -3,10 +3,11 @@
 The matching service for [bye0](https://github.com/Ofisalita/bye0): turns a music link into a canonical track
 plus ranked, playable YouTube candidates. Design and decisions: [`MATCHING_SERVICE.md`](MATCHING_SERVICE.md).
 
-**Status: walking skeleton (D16).** Resolves **Spotify track links** and **YouTube / YT Music video links**
+**Status: walking skeleton (D16).** Resolves **Spotify and Deezer track links** and **YouTube / YT Music video links**
 (`watch?v=`, `youtu.be/`, `/shorts/`, `/embed/`, `/live/`, `/v/`). Every other input returns
 `422 unsupported_input`, and album/playlist links return `409 collection_input`. **`POST /expand`** turns
-Spotify albums/playlists and YT Music / YouTube albums/playlists into up to 100 track stubs. No cache yet.
+Spotify albums/playlists and YT Music / YouTube albums/playlists into up to 100 track stubs, and
+**`GET /search`** lists songs from YT Music and Deezer for the guest search box. No cache yet.
 
 A YouTube link comes back as `candidates[0]` with confidence 1 and `needsConfirmation: false`, and
 `canonical.durationMs` is the video's real length (from ytmusicapi's `get_song`). Live streams have
@@ -39,18 +40,19 @@ docker build -t nidol . && docker run --rm -p 8000:8000 nidol
 |---|---|
 | `POST /resolve` | Body `{input, target?: "youtube", country?: "CL", preferAudio?: false}` → `{canonical, candidates[], needsConfirmation}` |
 | `POST /expand` | Body `{input}` (album/playlist link) → `{collection: {kind, platform, title}, tracks: [{title, artists, durationMs, explicit, source: {platform, id, url}}], truncated}`. Each `source.url` is a track link `/resolve` accepts. Track links and radio mixes are `422`. |
+| `GET /search` | `?q=…&country=CL` → `{results: [{title, artists, durationMs, artworkUrl, isrc, source: {platform, id, url}}]}`, up to 10. YT Music songs lead (two per Deezer result); a song on both keeps the YT Music entry with Deezer's ISRC; low-popularity Deezer results (mostly covers and remixes) go last. `source.url` is a track link `/resolve` accepts. `503 search_unavailable` only when both sources fail. |
 | `GET /healthz` | `{"status":"ok"}` |
 
 Errors are `{"error": "<code>", ...}`:
 
 | Status | `error` | Meaning |
 |---|---|---|
-| 404 | `not_found` | The Spotify track/album/playlist or YouTube video/playlist doesn't exist (or is private) |
+| 404 | `not_found` | The Spotify track/album/playlist, Deezer track or YouTube video/playlist doesn't exist (or is private) |
 | 404 | `no_match` | YouTube search returned nothing usable |
 | 409 | `collection_input` | `/resolve` got an album/playlist link (`kind` says which); call `/expand` |
 | 422 | `unsupported_input` | Not a supported link yet |
-| 502 | `upstream_error` | The Spotify embed page failed or changed shape (`source: "spotify"`), or both ytmusicapi and oEmbed failed for a YouTube link (`source: "youtube"`) |
-| 503 | `search_unavailable` | YouTube Music search failed or timed out |
+| 502 | `upstream_error` | The Spotify embed page failed or changed shape (`source: "spotify"`), both ytmusicapi and oEmbed failed for a YouTube link (`source: "youtube"`), or the Deezer API failed (`source: "deezer"`) |
+| 503 | `search_unavailable` | YouTube Music search failed or timed out (for `/search`: both sources did) |
 
 ## Config
 
