@@ -1,4 +1,4 @@
-"""POST /resolve orchestration: Spotify track links and YouTube / YT Music video links."""
+"""POST /resolve orchestration: Spotify and Deezer track links, YouTube / YT Music video links."""
 
 import asyncio
 import logging
@@ -25,9 +25,13 @@ async def resolve(req: ResolveRequest, client: httpx.AsyncClient) -> ResolveResp
         raise NidolError(422, "unsupported_input")
     if parsed.kind != "track":
         raise NidolError(409, "collection_input", kind=parsed.kind)
-    if parsed.platform == "youtube":
-        return await _resolve_youtube(req, client, parsed.id)
-    return await _resolve_spotify(req, client, parsed.id)
+    match parsed.platform:
+        case "youtube":
+            return await _resolve_youtube(req, client, parsed.id)
+        case "deezer":
+            return await _resolve_deezer(req, client, parsed.id)
+        case _:
+            return await _resolve_spotify(req, client, parsed.id)
 
 
 async def _resolve_spotify(
@@ -42,19 +46,62 @@ async def _resolve_spotify(
     except (httpx.HTTPError, TimeoutError, spotify.SpotifyParseError) as e:
         log.warning("spotify embed failed: %r", e)
         raise NidolError(502, "upstream_error", source="spotify") from None
+    known = Canonical(
+        title=track.title,
+        artists=track.artists,
+        durationMs=track.duration_ms,
+        year=track.year,
+        explicit=track.explicit,
+        artworkUrl=track.artwork_url,
+    )
+    return await _match(req, client, known, f"https://open.spotify.com/track/{track.id}")
 
-    track_url = f"https://open.spotify.com/track/{track.id}"
+
+async def _resolve_deezer(
+    req: ResolveRequest, client: httpx.AsyncClient, track_id: str
+) -> ResolveResponse:
+    try:
+        track = await asyncio.wait_for(
+            deezer.get_track(client, track_id), settings.required_timeout_s
+        )
+    except deezer.DeezerNotFound:
+        raise NidolError(404, "not_found") from None
+    except (httpx.HTTPError, TimeoutError, KeyError, ValueError) as e:
+        log.warning("deezer track failed: %r", e)
+        raise NidolError(502, "upstream_error", source="deezer") from None
+    known = Canonical(
+        isrc=track.isrc,
+        title=track.title,
+        artists=track.artists,
+        durationMs=track.duration_ms,
+        year=track.year,
+        explicit=track.explicit,
+        artworkUrl=track.cover_url,
+    )
+    return await _match(req, client, known, track.url)
+
+
+async def _match(
+    req: ResolveRequest, client: httpx.AsyncClient, known: Canonical, track_url: str
+) -> ResolveResponse:
+    """Known track metadata → YouTube candidates, filling in ISRC (Deezer) and MBID (MusicBrainz)
+    when they arrive within their deadlines (D10, D11)."""
     yt_task = asyncio.wait_for(
-        ytmusic.search(f"{track.artists[0]} {track.title}", req.country),
+        ytmusic.search(f"{known.artists[0]} {known.title}", req.country),
         settings.required_timeout_s,
+    )
+    # Deezer is only needed for the ISRC; a Deezer link already has it.
+    deezer_task = (
+        asyncio.sleep(0, result=None)
+        if known.isrc
+        else optional(
+            "deezer", deezer.find_track(client, known.artists, known.title, known.durationMs)
+        )
     )
     try:
         results, dz, mbid = await asyncio.gather(
             yt_task,
-            optional(
-                "deezer",
-                deezer.find_track(client, track.artists, track.title, track.duration_ms),
-            ),
+            deezer_task,
             optional(
                 "musicbrainz",
                 musicbrainz.recording_for_url(client, track_url, settings.source_timeout_s / 2),
@@ -64,15 +111,15 @@ async def _resolve_spotify(
         log.warning("youtube search failed: %r", e)
         raise NidolError(503, "search_unavailable") from None
 
-    canonical = Canonical(
-        isrc=dz.isrc if dz else None,
-        mbid=mbid,
-        title=track.title,
-        artists=track.artists,
-        durationMs=track.duration_ms,
-        year=track.year,
-        explicit=track.explicit if track.explicit is not None else (dz.explicit if dz else None),
-        artworkUrl=track.artwork_url or (dz.cover_url if dz else None),
+    canonical = known.model_copy(
+        update={
+            "isrc": known.isrc or (dz.isrc if dz else None),
+            "mbid": mbid,
+            "explicit": known.explicit
+            if known.explicit is not None
+            else (dz.explicit if dz else None),
+            "artworkUrl": known.artworkUrl or (dz.cover_url if dz else None),
+        }
     )
     candidates = scoring.rank(canonical, results, settings.max_candidates)
     if not candidates:

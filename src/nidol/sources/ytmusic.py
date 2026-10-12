@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import re
 from dataclasses import dataclass
 from functools import cache
 
@@ -25,6 +26,18 @@ class YTResult:
     duration_ms: int | None
     kind: str
     explicit: bool | None = None
+    artwork_url: str | None = None
+
+
+_THUMB_SIZE = re.compile(r"=w\d+-h\d+")
+
+
+def _artwork(thumbnails: list[dict] | None) -> str | None:
+    """Largest thumbnail, upsized: search results only list 60/120 px versions of the art."""
+    if not thumbnails:
+        return None
+    url = max(thumbnails, key=lambda t: t.get("width", 0))["url"]
+    return _THUMB_SIZE.sub("=w544-h544", url)
 
 
 @cache
@@ -50,9 +63,16 @@ def _search_sync(query: str, country: str | None, filter_: str) -> list[YTResult
                 artists=[a["name"] for a in item.get("artists") or [] if a.get("name")],
                 duration_ms=secs * 1000 if secs else None,
                 kind=_KINDS.get(item.get("videoType") or "", "other"),
+                explicit=item.get("isExplicit"),
+                artwork_url=_artwork(item.get("thumbnails")),
             )
         )
     return results
+
+
+async def search_songs(query: str, country: str | None) -> list[YTResult]:
+    """Songs only (official audio): what the guest search box lists (D8)."""
+    return await asyncio.to_thread(_search_sync, query, country, "songs")
 
 
 async def search(query: str, country: str | None) -> list[YTResult]:

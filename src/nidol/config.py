@@ -16,6 +16,7 @@ class Settings(BaseSettings):
 
     max_candidates: int = 5
     max_expand_tracks: int = 100  # D9
+    max_search_results: int = 10
     confirm_threshold: float = 0.75
 
 

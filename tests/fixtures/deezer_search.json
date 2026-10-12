@@ -1,0 +1,64 @@
+{
+ "data": [
+  {
+   "id": 2565307142,
+   "title": "LUNA",
+   "isrc": "USUM72318216",
+   "duration": 196,
+   "explicit_lyrics": false,
+   "release_date": null,
+   "rank": 761010,
+   "artist": {
+    "name": "Feid"
+   },
+   "album": {
+    "cover_xl": "https://cdn-images.dzcdn.net/images/cover/fee4b7345f658a57a39747bf24b7466b/1000x1000-000000-80-0-0.jpg"
+   }
+  },
+  {
+   "id": 3115106041,
+   "title": "Feid - Luna (feat. SouliosG)",
+   "isrc": "QZZ7P2432385",
+   "duration": 220,
+   "explicit_lyrics": false,
+   "release_date": null,
+   "rank": 17363,
+   "artist": {
+    "name": "_.SouliosG._"
+   },
+   "album": {
+    "cover_xl": "https://cdn-images.dzcdn.net/images/cover/e7b32671079cbbcdf69475a18c2e00b1/1000x1000-000000-80-0-0.jpg"
+   }
+  },
+  {
+   "id": 2783109172,
+   "title": "Feid - Luna (5Hart Remix)",
+   "isrc": "QZK6H2403668",
+   "duration": 190,
+   "explicit_lyrics": true,
+   "release_date": null,
+   "rank": 41261,
+   "artist": {
+    "name": "5Hart"
+   },
+   "album": {
+    "cover_xl": "https://cdn-images.dzcdn.net/images/cover/7d07e348932f2411d2e195c4bda5e584/1000x1000-000000-80-0-0.jpg"
+   }
+  },
+  {
+   "id": 1921411397,
+   "title": "Felina",
+   "isrc": "BXW922200018",
+   "duration": 225,
+   "explicit_lyrics": false,
+   "release_date": null,
+   "rank": 639935,
+   "artist": {
+    "name": "WIU"
+   },
+   "album": {
+    "cover_xl": "https://cdn-images.dzcdn.net/images/cover/19d7aac993abba5bb179316a0d2ffce6/1000x1000-000000-80-0-0.jpg"
+   }
+  }
+ ]
+}

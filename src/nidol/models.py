@@ -70,6 +70,19 @@ class ExpandResponse(BaseModel):
     truncated: bool
 
 
+class SearchResult(BaseModel):
+    title: str
+    artists: list[str]
+    durationMs: int | None = None
+    artworkUrl: str | None = None
+    isrc: str | None = None
+    source: Source
+
+
+class SearchResponse(BaseModel):
+    results: list[SearchResult]
+
+
 class ErrorBody(BaseModel):
     error: str
     kind: str | None = None
