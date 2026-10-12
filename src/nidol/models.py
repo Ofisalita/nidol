@@ -21,6 +21,7 @@ class Canonical(BaseModel):
     year: int | None = None
     explicit: bool | None = None
     artworkUrl: str | None = None
+    isLive: bool = False  # a live stream: durationMs is null but the length is unbounded
 
 
 class Candidate(BaseModel):

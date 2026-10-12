@@ -1,0 +1,14 @@
+{
+ "playabilityStatus": {
+  "status": "OK"
+ },
+ "videoDetails": {
+  "videoId": "FGBhQbmPwH8",
+  "title": "One More Time",
+  "author": "Daft Punk",
+  "channelId": "UC_kRDKYrUlrbtrSiyu5Tflg",
+  "lengthSeconds": "321",
+  "musicVideoType": "MUSIC_VIDEO_TYPE_OMV",
+  "isLiveContent": false
+ }
+}
