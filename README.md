@@ -77,6 +77,24 @@ uv run ruff check . && uv run ruff format --check .
 
 Tests use recorded fixtures and never call upstream services.
 
+## Accuracy test set (D14, D15)
+
+The v1 "done" bar is **top-1 ≥ 95%** on ≥200 hand-labelled links. Cases live in
+[`tests/accuracy/cases.yaml`](tests/accuracy/cases.yaml); links waiting for a label in
+[`tests/accuracy/inbox.txt`](tests/accuracy/inbox.txt).
+
+```sh
+uv run label --inbox tests/accuracy/inbox.txt   # resolve each link, pick the correct video(s)
+uv run label <link> [--tag hard]                 # or label single links
+uv run accuracy                                  # run all cases live; exits 1 below 95% top-1
+uv run accuracy --tag remaster                   # only one slice
+```
+
+When labelling, `1,2` accepts several candidates (e.g. the official audio *and* the official video),
+`o <videoId>` adds one nidol didn't list, `s` skips, `q` quits, and `# …` after a pick saves a note.
+Tags (platform, remaster, live, feat, non-latin, …) are added automatically. The run calls the real
+upstreams, one case at a time by default, so it takes a few minutes. It's manual only, not in CI.
+
 ## License
 
 [WTFPL](LICENSE)

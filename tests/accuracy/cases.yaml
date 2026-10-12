@@ -1,0 +1,4 @@
+# nidol accuracy test set (D14). Add cases with `uv run label <link>`; run with `uv run accuracy`.
+# accept: every videoId that counts as correct (e.g. the official audio AND the official video).
+
+[]

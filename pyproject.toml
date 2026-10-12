@@ -18,6 +18,9 @@ dependencies = [
 
 [project.scripts]
 nidol = "nidol:main"
+# Dev tools (need the dev group's pyyaml): see src/nidol/accuracy.py
+label = "nidol.accuracy:label_main"
+accuracy = "nidol.accuracy:accuracy_main"
 
 [build-system]
 requires = ["uv_build>=0.11.18,<0.12.0"]
@@ -27,6 +30,7 @@ build-backend = "uv_build"
 dev = [
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
+    "pyyaml>=6.0.3",
     "respx>=0.23.1",
     "ruff>=0.17.0",
 ]
