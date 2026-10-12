@@ -2,11 +2,10 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Annotated
 
-import httpx
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import JSONResponse
 
-from nidol.config import settings
+from nidol.client import make_client
 from nidol.expand import expand
 from nidol.models import (
     ErrorBody,
@@ -23,11 +22,7 @@ from nidol.search import search
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    async with httpx.AsyncClient(
-        headers={"User-Agent": settings.user_agent},
-        timeout=settings.required_timeout_s,
-        follow_redirects=True,
-    ) as client:
+    async with make_client() as client:
         app.state.http = client
         yield
 
