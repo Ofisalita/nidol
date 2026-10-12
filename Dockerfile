@@ -10,7 +10,9 @@ COPY README.md ./
 COPY src ./src
 RUN uv sync --locked
 
-ENV PATH="/app/.venv/bin:$PATH" PORT=8000
+# The SQLite cache (D3). Mount a persistent volume at /data, or the cache resets on redeploy.
+RUN mkdir /data && chown nobody /data
+ENV PATH="/app/.venv/bin:$PATH" PORT=8000 NIDOL_CACHE_PATH=/data/nidol.sqlite3
 EXPOSE 8000
 USER nobody
 HEALTHCHECK --interval=30s --timeout=3s \

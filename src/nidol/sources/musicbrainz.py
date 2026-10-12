@@ -46,3 +46,24 @@ async def recording_for_url(client: httpx.AsyncClient, url: str, max_wait: float
         if rel.get("target-type") == "recording" and rel.get("recording"):
             return rel["recording"]["id"]
     return None
+
+
+async def recording_for_isrc(
+    client: httpx.AsyncClient, isrc: str, duration_ms: int | None, max_wait: float
+) -> str | None:
+    """MBID of the recording with this ISRC. MusicBrainz knows far more ISRCs than platform links;
+    when several recordings share one, the closest in length wins."""
+    if not await limiter.acquire(max_wait):
+        return None
+    r = await client.get(f"{settings.mb_base_url}/isrc/{isrc}", params={"fmt": "json"})
+    if r.status_code == 404:
+        return None
+    r.raise_for_status()
+    recordings = r.json().get("recordings") or []
+    if not recordings:
+        return None
+
+    def distance(rec: dict) -> int:
+        return abs((rec.get("length") or 0) - (duration_ms or 0)) if duration_ms else 0
+
+    return min(recordings, key=distance)["id"]
