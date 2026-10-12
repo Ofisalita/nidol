@@ -1,0 +1,48 @@
+{
+ "title": "\"BEST OF THE 80's\" - A Compilation of the Most Popular Music Video's Ever Played on MTV in the 80's.",
+ "trackCount": 495,
+ "tracks": [
+  {
+   "videoId": "9OFpfTd0EIs",
+   "title": "Eyes Without A Face",
+   "artists": [
+    {
+     "name": "Billy Idol",
+     "id": "UC_R3nYWHZV0tGgbpuDoI0vA"
+    }
+   ],
+   "duration_seconds": 295,
+   "isExplicit": false,
+   "isAvailable": true,
+   "videoType": "MUSIC_VIDEO_TYPE_OMV"
+  },
+  {
+   "videoId": "djV11Xbc914",
+   "title": "Take On Me",
+   "artists": [
+    {
+     "name": "a-ha",
+     "id": "UCx00XxqRCfPS6zaTzRm3H2A"
+    }
+   ],
+   "duration_seconds": 244,
+   "isExplicit": false,
+   "isAvailable": true,
+   "videoType": "MUSIC_VIDEO_TYPE_OMV"
+  },
+  {
+   "videoId": "OMOGaugKpzs",
+   "title": "Every Breath You Take Video",
+   "artists": [
+    {
+     "name": "The Police",
+     "id": "UCbsRGw640UF_F7AIwHW-zmg"
+    }
+   ],
+   "duration_seconds": 229,
+   "isExplicit": false,
+   "isAvailable": true,
+   "videoType": "MUSIC_VIDEO_TYPE_OMV"
+  }
+ ]
+}

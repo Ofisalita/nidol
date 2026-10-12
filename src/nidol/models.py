@@ -40,6 +40,36 @@ class ResolveResponse(BaseModel):
     needsConfirmation: bool
 
 
+class ExpandRequest(BaseModel):
+    input: str
+
+
+class Collection(BaseModel):
+    kind: Literal["album", "playlist"]
+    platform: str
+    title: str
+
+
+class Source(BaseModel):
+    platform: str
+    id: str
+    url: str  # always something POST /resolve accepts
+
+
+class ExpandTrack(BaseModel):
+    title: str
+    artists: list[str]
+    durationMs: int | None = None
+    explicit: bool | None = None
+    source: Source
+
+
+class ExpandResponse(BaseModel):
+    collection: Collection
+    tracks: list[ExpandTrack]
+    truncated: bool
+
+
 class ErrorBody(BaseModel):
     error: str
     kind: str | None = None

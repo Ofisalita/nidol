@@ -6,7 +6,15 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from nidol.config import settings
-from nidol.models import ErrorBody, NidolError, ResolveRequest, ResolveResponse
+from nidol.expand import expand
+from nidol.models import (
+    ErrorBody,
+    ExpandRequest,
+    ExpandResponse,
+    NidolError,
+    ResolveRequest,
+    ResolveResponse,
+)
 from nidol.resolve import resolve
 
 
@@ -34,6 +42,11 @@ async def nidol_error(_: Request, exc: NidolError) -> JSONResponse:
 @app.post("/resolve", responses=_ERRORS)
 async def post_resolve(body: ResolveRequest, request: Request) -> ResolveResponse:
     return await resolve(body, request.app.state.http)
+
+
+@app.post("/expand", responses=_ERRORS)
+async def post_expand(body: ExpandRequest, request: Request) -> ExpandResponse:
+    return await expand(body, request.app.state.http)
 
 
 @app.get("/healthz")

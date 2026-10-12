@@ -1,0 +1,48 @@
+{
+ "title": "Discovery",
+ "trackCount": 14,
+ "tracks": [
+  {
+   "videoId": "FGBhQbmPwH8",
+   "title": "One More Time",
+   "artists": [
+    {
+     "name": "Daft Punk",
+     "id": "UCRr1xG_2WIDs18a6cIiCxeA"
+    }
+   ],
+   "duration_seconds": 321,
+   "isExplicit": false,
+   "isAvailable": true,
+   "videoType": "MUSIC_VIDEO_TYPE_OMV"
+  },
+  {
+   "videoId": "L93-7vRfxNs",
+   "title": "Aerodynamic",
+   "artists": [
+    {
+     "name": "Daft Punk",
+     "id": "UCRr1xG_2WIDs18a6cIiCxeA"
+    }
+   ],
+   "duration_seconds": 213,
+   "isExplicit": false,
+   "isAvailable": true,
+   "videoType": "MUSIC_VIDEO_TYPE_OMV"
+  },
+  {
+   "videoId": "4whD6uAryMs",
+   "title": "Digital Love",
+   "artists": [
+    {
+     "name": "Daft Punk",
+     "id": "UCRr1xG_2WIDs18a6cIiCxeA"
+    }
+   ],
+   "duration_seconds": 302,
+   "isExplicit": false,
+   "isAvailable": true,
+   "videoType": "MUSIC_VIDEO_TYPE_OMV"
+  }
+ ]
+}
