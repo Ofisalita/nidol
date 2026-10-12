@@ -24,6 +24,7 @@ class YTResult:
     artists: list[str]
     duration_ms: int | None
     kind: str
+    explicit: bool | None = None
 
 
 @cache
@@ -101,3 +102,39 @@ def parse_song(video_id: str, song: dict) -> YTVideo:
 async def get_video(video_id: str) -> YTVideo:
     song = await asyncio.to_thread(_client(None).get_song, video_id)
     return parse_song(video_id, song)
+
+
+@dataclass(frozen=True)
+class YTCollection:
+    title: str
+    tracks: list[YTResult]
+    total: int | None  # YouTube's own count; may exceed len(tracks)
+
+
+def parse_collection(raw: dict) -> YTCollection:
+    """`get_album` / `get_playlist` response → YTCollection. Unplayable entries are dropped."""
+    tracks = [
+        YTResult(
+            video_id=t["videoId"],
+            title=t.get("title") or "",
+            artists=[a["name"] for a in t.get("artists") or [] if a.get("name")],
+            duration_ms=t["duration_seconds"] * 1000 if t.get("duration_seconds") else None,
+            kind=_KINDS.get(t.get("videoType") or "", "other"),
+            explicit=t.get("isExplicit"),
+        )
+        for t in raw.get("tracks") or []
+        if t.get("videoId") and t.get("isAvailable", True)
+    ]
+    total = raw.get("trackCount")
+    return YTCollection(title=raw.get("title") or "", tracks=tracks, total=total)
+
+
+def _collection_sync(id_: str, limit: int) -> dict:
+    yt = _client(None)
+    return yt.get_album(id_) if id_.startswith("MPREb_") else yt.get_playlist(id_, limit=limit)
+
+
+async def get_collection(id_: str, limit: int) -> YTCollection:
+    """Album (MPREb_… browse ID) or playlist. ytmusicapi raises KeyError for missing/private
+    lists, the same error it raises if YouTube changes its page layout."""
+    return parse_collection(await asyncio.to_thread(_collection_sync, id_, limit))

@@ -2,28 +2,17 @@
 
 import asyncio
 import logging
-from collections.abc import Awaitable
 
 import httpx
 
 from nidol import scoring
 from nidol.config import settings
+from nidol.deadlines import optional
 from nidol.inputs import parse_input
 from nidol.models import Candidate, Canonical, NidolError, ResolveRequest, ResolveResponse
 from nidol.sources import deezer, musicbrainz, spotify, youtube, ytmusic
 
 log = logging.getLogger(__name__)
-
-
-async def _optional[T](
-    name: str, coro: Awaitable[T], timeout: float = settings.source_timeout_s
-) -> T | None:
-    """Enrichment source (D11): a miss, error or timeout just means less data."""
-    try:
-        return await asyncio.wait_for(coro, timeout)
-    except Exception as e:  # noqa: BLE001 — enrichment must never fail the request
-        log.warning("%s skipped: %r", name, e)
-        return None
 
 
 def _thumbnail(video_id: str) -> str:
@@ -62,11 +51,11 @@ async def _resolve_spotify(
     try:
         results, dz, mbid = await asyncio.gather(
             yt_task,
-            _optional(
+            optional(
                 "deezer",
                 deezer.find_track(client, track.artists, track.title, track.duration_ms),
             ),
-            _optional(
+            optional(
                 "musicbrainz",
                 musicbrainz.recording_for_url(client, track_url, settings.source_timeout_s / 2),
             ),
@@ -155,7 +144,7 @@ async def _alternates(
     # For official uploads the author is the artist; uploaders' names would only add noise.
     official = video.kind in scoring.AUTHORITATIVE_ARTISTS
     query = f"{video.author} {video.title}" if official else video.title
-    results = await _optional(
+    results = await optional(
         "youtube alternates", ytmusic.search(query, country), settings.required_timeout_s
     )
     same_recording = [

@@ -33,7 +33,8 @@ def parse_input(raw: str) -> ParsedInput | None:
 
 
 def _parse_youtube(raw: str) -> ParsedInput | None:
-    """Same link set as bye0's `youtubeId()` (apps/server/src/matching.ts), plus playlist links."""
+    """Same video link set as bye0's `youtubeId()` (apps/server/src/matching.ts), plus playlists
+    and YT Music albums. Radio/mix lists (`RD…`) are endless and generated, so unsupported."""
     url = urlsplit(raw)
     if url.scheme not in ("http", "https") or not url.hostname:
         return None
@@ -49,7 +50,14 @@ def _parse_youtube(raw: str) -> ParsedInput | None:
         elif first in _YOUTUBE_PATH_ID:
             video_id = second
         elif first == "playlist" and query.get("list"):
-            return ParsedInput("youtube", "playlist", query["list"][0])
+            list_id = query["list"][0]
+            if list_id.startswith("RD"):
+                return None
+            # An album's audio playlist (what YT Music's album "share" button links to).
+            kind = "album" if list_id.startswith("OLAK5uy_") else "playlist"
+            return ParsedInput("youtube", kind, list_id)
+        elif first == "browse" and second.startswith("MPREb_"):
+            return ParsedInput("youtube", "album", second)
     if video_id and _YOUTUBE_ID.match(video_id):
         return ParsedInput("youtube", "track", video_id)
     return None

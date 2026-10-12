@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     required_timeout_s: float = 1.5
 
     max_candidates: int = 5
+    max_expand_tracks: int = 100  # D9
     confirm_threshold: float = 0.75
 
 

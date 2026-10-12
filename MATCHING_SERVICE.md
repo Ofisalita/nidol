@@ -29,7 +29,7 @@ It's a separate HTTP service (Python, because ytmusicapi is Python) that **only 
 
 | Source | Gives us | Auth | Status |
 |---|---|---|---|
-| **Spotify embed page** `open.spotify.com/embed/{track,album,playlist}/<id>` | `__NEXT_DATA__` JSON. Track: title, **artists**, **duration**, release date, explicit. Album/playlist: name + `trackList` (title, artist line, duration, explicit, track URI). | none | ✅ track `0DiWol3AO6WpXZgp0goxAV` → Daft Punk, 320357 ms, 2001-03-12; album *Discovery* → 14/14 tracks; *Today's Top Hits* → 50; *All Out 80s* → **100 (looks capped at 100, verify)**. Unofficial scrape, ToS-gray, can break; parser covered by recorded fixtures. |
+| **Spotify embed page** `open.spotify.com/embed/{track,album,playlist}/<id>` | `__NEXT_DATA__` JSON. Track: title, **artists**, **duration**, release date, explicit. Album/playlist: name + `trackList` (title, artist line, duration, explicit, track URI). | none | ✅ track `0DiWol3AO6WpXZgp0goxAV` → Daft Punk, 320357 ms, 2001-03-12; album *Discovery* → 14/14 tracks; *Today's Top Hits* → 50; *All Out 80s* → **100 of 150**: the embed caps at 100 (✅ 2026-10-12, the full page's `music:song_count` meta says 150). Unofficial scrape, ToS-gray, can break; parser covered by recorded fixtures. |
 | **MusicBrainz** `/ws/2/url?resource=<platform URL>&inc=recording-rels` | Platform URL → MB recording | none, `User-Agent` required, ~1 req/s on the public server | ✅ Spotify track URL → recording `60fa767a-…` ("One More Time") |
 | **MusicBrainz** `/ws/2/isrc/<ISRC>?inc=url-rels` | ISRC → recording + **links to Spotify/Deezer/Apple/Tidal** | same | ✅ returned 4 platform URLs for GBDUW0000053. Links are crowd-sourced, so obscure tracks often have none. |
 | **Deezer** `api.deezer.com/search?q=` | Search with **ISRC**, duration, rank, `explicit_lyrics` | none | ✅ |
@@ -59,7 +59,7 @@ It's a separate HTTP service (Python, because ytmusicapi is Python) that **only 
 | D13 | Feedback | **`POST /feedback`** from bye0 on QTE picks and on player embed errors. Picks become cache overrides (input / ISRC → videoId); embed-blocked videoIds (101/150/100) get skipped from then on. The log also seeds new test-set cases. No guest or party identifiers are stored. |
 | D14 | Accuracy test set | `tests/accuracy/cases.yaml` (input, accepted videoIds, tags like `remaster`/`live`/`non-latin`, notes). A **label CLI** (`uv run label <link>`) resolves the link, shows the candidates and appends your pick. Both of you add cases. |
 | D15 | Accuracy runs | **Manual only** (`uv run accuracy`), before deploys and after ytmusicapi upgrades. PR CI runs unit tests against recorded fixtures only. |
-| D16 | Build order | **Walking skeleton first:** `/resolve` Spotify → YouTube end to end, deployed on Coolify so bye0 can integrate. Then the test set + label CLI, then the remaining platforms + scoring tuning to ≥95%, then `/search`, `/expand`, `/feedback` and the Data API fallback. |
+| D16 | Build order | **Walking skeleton first:** `/resolve` Spotify → YouTube end to end, deployed on Coolify so bye0 can integrate. Then the test set + label CLI, then the remaining platforms + scoring tuning to ≥95%, then `/search`, `/expand`, `/feedback` and the Data API fallback. **Changed 2026-10-12:** `/expand` and `/search` move ahead of the test set so bye0 can build against them in parallel. |
 | D17 | Contract sharing | FastAPI's OpenAPI schema is the contract; bye0 generates TS types from it. |
 | D18 | Odd inputs | Free text in `/resolve` is auto-picked (top search result; `needsConfirmation` applies as usual). Any YouTube link, music or not, is accepted as-is (canonical from oEmbed). |
 | D19 | License | **WTFPL**, same as bye0 (ytmusicapi is MIT, compatible). |
@@ -123,6 +123,12 @@ POST /expand
                 "source": { "platform": "spotify", "id": "…", "url": "…" } }, … ],
   "truncated": false }
 
+// tracks[].artists: for Spotify, one display string ("A, B") — the embed has no per-artist list,
+//   and splitting on commas breaks names like "Tyler, The Creator". /resolve returns the real list.
+// truncated: true when the list had more than 100 tracks. Spotify embeds stop at 100 without a
+//   count; nidol then reads the playlist page's song count, and assumes true if it can't.
+// YouTube radio/mix lists (list=RD…) are 422 unsupported_input: they're endless and generated.
+
 GET  /search?q=...&country=CL
 200 OK
 { "results": [ { "title": "…", "artists": ["…"], "durationMs": …, "artworkUrl": "…", "isrc": "…",
@@ -160,4 +166,4 @@ GET  /healthz                       // includes upstream status + Data API units
 ## Open items
 
 - **GCP project for the Data API key**: none exists yet. Until there is one, no region checks and no fallback (D6).
-- Verify the Spotify playlist embed's 100-track cap, the iTunes rate limit, and the Data API unit costs.
+- Verify the iTunes rate limit and the Data API unit costs.

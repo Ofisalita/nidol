@@ -5,7 +5,8 @@ plus ranked, playable YouTube candidates. Design and decisions: [`MATCHING_SERVI
 
 **Status: walking skeleton (D16).** Resolves **Spotify track links** and **YouTube / YT Music video links**
 (`watch?v=`, `youtu.be/`, `/shorts/`, `/embed/`, `/live/`, `/v/`). Every other input returns
-`422 unsupported_input`, and album/playlist links return `409 collection_input`. No cache yet.
+`422 unsupported_input`, and album/playlist links return `409 collection_input`. **`POST /expand`** turns
+Spotify albums/playlists and YT Music / YouTube albums/playlists into up to 100 track stubs. No cache yet.
 
 A YouTube link comes back as `candidates[0]` with confidence 1 and `needsConfirmation: false`, and
 `canonical.durationMs` is the video's real length (from ytmusicapi's `get_song`). Live streams have
@@ -37,15 +38,16 @@ docker build -t nidol . && docker run --rm -p 8000:8000 nidol
 | Endpoint | Notes |
 |---|---|
 | `POST /resolve` | Body `{input, target?: "youtube", country?: "CL", preferAudio?: false}` → `{canonical, candidates[], needsConfirmation}` |
+| `POST /expand` | Body `{input}` (album/playlist link) → `{collection: {kind, platform, title}, tracks: [{title, artists, durationMs, explicit, source: {platform, id, url}}], truncated}`. Each `source.url` is a track link `/resolve` accepts. Track links and radio mixes are `422`. |
 | `GET /healthz` | `{"status":"ok"}` |
 
 Errors are `{"error": "<code>", ...}`:
 
 | Status | `error` | Meaning |
 |---|---|---|
-| 404 | `not_found` | The Spotify track or YouTube video doesn't exist |
+| 404 | `not_found` | The Spotify track/album/playlist or YouTube video/playlist doesn't exist (or is private) |
 | 404 | `no_match` | YouTube search returned nothing usable |
-| 409 | `collection_input` | Album/playlist link (`kind` says which); `/expand` comes later |
+| 409 | `collection_input` | `/resolve` got an album/playlist link (`kind` says which); call `/expand` |
 | 422 | `unsupported_input` | Not a supported link yet |
 | 502 | `upstream_error` | The Spotify embed page failed or changed shape (`source: "spotify"`), or both ytmusicapi and oEmbed failed for a YouTube link (`source: "youtube"`) |
 | 503 | `search_unavailable` | YouTube Music search failed or timed out |
