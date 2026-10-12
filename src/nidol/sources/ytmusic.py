@@ -64,3 +64,40 @@ async def search(query: str, country: str | None) -> list[YTResult]:
     for r in songs + videos:
         unique.setdefault(r.video_id, r)
     return list(unique.values())
+
+
+class VideoUnavailable(Exception):
+    pass
+
+
+@dataclass(frozen=True)
+class YTVideo:
+    video_id: str
+    title: str
+    author: str
+    duration_ms: int | None  # None for live streams (YouTube reports length 0)
+    is_live: bool
+    kind: str
+
+
+def parse_song(video_id: str, song: dict) -> YTVideo:
+    """`YTMusic.get_song` response → YTVideo. Raises VideoUnavailable when YouTube has no details."""
+    details = song.get("videoDetails")
+    if not details:
+        reason = (song.get("playabilityStatus") or {}).get("reason")
+        raise VideoUnavailable(reason or "no videoDetails")
+    secs = int(details.get("lengthSeconds") or 0)
+    is_live = bool(details.get("isLive") or (details.get("isLiveContent") and not secs))
+    return YTVideo(
+        video_id=details.get("videoId") or video_id,
+        title=details.get("title") or "",
+        author=details.get("author") or "",
+        duration_ms=secs * 1000 if secs else None,
+        is_live=is_live,
+        kind=_KINDS.get(details.get("musicVideoType") or "", "other"),
+    )
+
+
+async def get_video(video_id: str) -> YTVideo:
+    song = await asyncio.to_thread(_client(None).get_song, video_id)
+    return parse_song(video_id, song)

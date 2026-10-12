@@ -12,7 +12,7 @@ VARIANT_MARKERS = (
     "slowed", "nightcore", "reverb", "8d", "1 hour", "loop", "extended", "mashup", "tutorial",
     "lesson", "reaction", "bass boosted", "lullaby", "tribute", "originally performed",
     "made famous", "in the style of", "bardcore", "8 bit", "music box", "stripped", "acoustic",
-    "unplugged", "demo", "orchestral",
+    "unplugged", "demo", "orchestral", "reversed",
 )  # fmt: skip
 VARIANT_PENALTY = 0.4
 
@@ -44,9 +44,13 @@ def _title_score(source: str, candidate: str) -> float:
 AUTHORITATIVE_ARTISTS = {"official_audio", "official_video"}
 
 
+def same_artist(artists: list[str], result: YTResult) -> bool:
+    return bool({normalize(a) for a in artists} & {normalize(a) for a in result.artists})
+
+
 def _artist_score(artists: list[str], result: YTResult) -> float:
     wanted = {normalize(a) for a in artists}
-    if wanted & {normalize(a) for a in result.artists}:
+    if same_artist(artists, result):
         return 1.0
     if result.kind in AUTHORITATIVE_ARTISTS:
         # "Song (Originally Performed by <artist>)" from someone else is a cover.

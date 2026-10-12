@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -7,7 +8,7 @@ from nidol.models import Canonical
 from nidol.scoring import needs_confirmation, rank
 from nidol.sources.musicbrainz import RateLimiter
 from nidol.sources.spotify import SpotifyNotFound, parse_track_embed
-from nidol.sources.ytmusic import YTResult
+from nidol.sources.ytmusic import VideoUnavailable, YTResult, parse_song
 from nidol.text import core_title, normalize
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -31,10 +32,67 @@ def test_parse_spotify(raw, expected):
 
 @pytest.mark.parametrize(
     "raw",
-    ["https://youtu.be/FGBhQbmPwH8", "daft punk one more time", "https://open.spotify.com/track/x"],
+    [
+        "daft punk one more time",
+        "https://open.spotify.com/track/x",
+        "https://youtube.com/watch?v=tooshort",
+        "https://example.com/watch?v=FGBhQbmPwH8",
+        "youtube.com/watch?v=FGBhQbmPwH8",  # no scheme, like bye0's `new URL()`
+        "https://www.youtube.com/",
+    ],
 )
 def test_parse_unsupported(raw):
     assert parse_input(raw) is None
+
+
+VID = "FGBhQbmPwH8"
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        f"https://www.youtube.com/watch?v={VID}&t=42",
+        f"https://music.youtube.com/watch?v={VID}&list=RDAMVM{VID}",
+        f"https://m.youtube.com/watch?v={VID}",
+        f"https://youtu.be/{VID}?si=abc",
+        f"https://youtube.com/shorts/{VID}",
+        f"https://www.youtube-nocookie.com/embed/{VID}",
+        f"https://www.youtube.com/live/{VID}",
+        f"https://www.youtube.com/v/{VID}",
+    ],
+)
+def test_parse_youtube_video(raw):
+    assert parse_input(raw) == ParsedInput("youtube", "track", VID)
+
+
+def test_parse_youtube_playlist():
+    assert parse_input("https://music.youtube.com/playlist?list=PLx") == ParsedInput(
+        "youtube", "playlist", "PLx"
+    )
+
+
+def load_song(name):
+    return json.loads((FIXTURES / f"ytmusic_get_song_{name}.json").read_text())
+
+
+def test_parse_song_official_video():
+    video = parse_song(VID, load_song("omv"))
+    assert (video.title, video.author, video.duration_ms) == ("One More Time", "Daft Punk", 321000)
+    assert (video.kind, video.is_live) == ("official_video", False)
+
+
+def test_parse_song_ten_hours():
+    assert parse_song("B4LvDiIi128", load_song("ten_hours")).duration_ms == 36_000_000
+
+
+def test_parse_song_live_stream_has_no_duration():
+    video = parse_song("rFZHOHl-L8A", load_song("live"))
+    assert (video.duration_ms, video.is_live) == (None, True)
+
+
+def test_parse_song_unavailable():
+    with pytest.raises(VideoUnavailable, match="Video unavailable"):
+        parse_song("aaaaaaaaaaa", load_song("unavailable"))
 
 
 def test_parse_track_embed():

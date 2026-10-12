@@ -103,7 +103,7 @@ POST /resolve
 {
   "canonical": { "isrc": "GBDUW0000053", "mbid": "60fa767a-…", "title": "One More Time",
                  "artists": ["Daft Punk"], "durationMs": 320357, "year": 2001, "explicit": false,
-                 "artworkUrl": "…" },
+                 "artworkUrl": "…", "isLive": false },   // isLive: YouTube live stream, durationMs null
   "candidates": [
     { "videoId": "…", "title": "…", "channel": "Daft Punk - Topic", "durationMs": 320000,
       "kind": "official_audio", "thumbnailUrl": "…", "confidence": 0.97 },
